@@ -9,7 +9,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 
 # Init Flask + WebSocket
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode="threading")
 
 # ADC setup
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -25,7 +25,7 @@ def stream_fsr():
     while True:
         v = fsr.voltage
         norm = max(0.0, min(1.0, v / 0.512))
-        velocity = 1.0 - pow(norm, 2.5)
+        velocity = (1.0-norm) ** 4
         socketio.emit("fsr_data", {"voltage": v, "velocity": velocity})
         time.sleep(0.02)
 

@@ -1,12 +1,10 @@
-
-
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
     <title>FSR Live Stream</title>
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
 <body>
     <h1>FSR Live Voltage + Velocity</h1>
@@ -15,6 +13,7 @@
     <script>
         const socket = io();
         let time = 0;
+        let maxTime = 5;
         let voltages = [];
         let velocities = [];
         let times = [];
@@ -37,20 +36,40 @@
 
         socket.on("fsr_data", data => {
             time += 0.02;
+
             voltages.push(data.voltage);
-            velocities.push(data.velocity);
+            let velocity = data.velocity;
+            velocities.push(velocity);
             times.push(time);
 
-            const MAX_POINTS = 200;
-            if (voltages.length > MAX_POINTS) {
-                voltages.shift();
-                velocities.shift();
-                times.shift();
+            const filteredTimes = [];
+            const filteredVoltages = [];
+            const filteredVelocities = [];
+
+            for (let i = 0; i < times.length; i++) {
+                if (times[i] >= time - maxTime) {
+                    filteredTimes.push(times[i]);
+                    filteredVoltages.push(voltages[i]);
+                    filteredVelocities.push(velocities[i]);
+                }
             }
 
-            Plotly.update('plot', {
-                y: [voltages, velocities],
-                x: [times, times]
+            Plotly.react('plot', [{
+                x: filteredTimes,
+                y: filteredVoltages,
+                name: 'Voltage',
+                mode: 'lines',
+                line: { color: 'blue' }
+            }, {
+                x: filteredTimes,
+                y: filteredVelocities,
+                name: 'Velocity',
+                mode: 'lines',
+                line: { color: 'red' }
+            }], {
+                title: 'Real-Time FSR Data',
+                xaxis: { title: 'Time (s)', range: [time - maxTime, time] },
+                yaxis: { title: 'Value' }
             });
         });
     </script>
